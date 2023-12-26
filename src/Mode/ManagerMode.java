@@ -1,8 +1,6 @@
 package Mode;
 // 관리자 모드
 
-import java.sql.SQLException;
-
 public class ManagerMode extends Mode {
     
     // 생성자 메서드
