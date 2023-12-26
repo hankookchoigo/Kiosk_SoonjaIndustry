@@ -43,10 +43,12 @@ public class Mode {
     
     // 상품을 위한 객체 생성
     public static class Product {
+        int id;
         String pname;
         int price;
         int quantity;
-        public Product(String pname, int price, int quantity) {
+        public Product(int id, String pname, int price, int quantity) {
+            this.id = id;
             this.pname = pname;
             this.price = price;
             this.quantity = quantity;
@@ -59,7 +61,7 @@ public class Mode {
             pstmt = conn.prepareStatement("select * from productList");
             rs = pstmt.executeQuery();
             while(rs.next()) {
-                Product p = new Product(rs.getString(1), rs.getInt(2), rs.getInt(3));
+                Product p = new Product(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getInt(4));
                 productList.add(p);
             }
         } catch (SQLException e) {
@@ -69,37 +71,65 @@ public class Mode {
     
     // 상품 목록 출력
     public void printProductList() {
-        int i = 0;
-        for (Product p : productList)
-            System.out.printf("[ %-3d ] %-12s (가격: %-6d / 수량: %-4d)\n", ++i , p.pname, p.price, p.quantity);
+        for (int i = 0; i < productList.size(); i++) {
+            Product p = productList.get(i);
+            System.out.printf("[ %-3d ] %-12s (가격: %-6d / 수량: %-4d)\n", i + 1 , p.pname, p.price, p.quantity);
+        }
     }
     
     // 장바구니를 위한 객체 생성
     public static class Cart {
+        int id;
         String pname;
         int price;
-        int buyAmount;
-        int restAmount;
-        public Cart(String pname, int price, int buyAmount, int restAmount) {
+        int buyQuantity;
+        int restQuantity;
+        public Cart(int id, String pname, int price, int buyQuantity, int restQuantity) {
+            this.id = id;
             this.pname = pname;
             this.price = price;
-            this.buyAmount = buyAmount;
-            this.restAmount = restAmount;
+            this.buyQuantity = buyQuantity;
+            this.restQuantity = restQuantity;
         }
     }
     
     // 장바구니에 상품 추가
-    public void addOnCartList(int idx, int buyAmount, int restAmount) {
-        Cart c = new Cart(productList.get(idx).pname, productList.get(idx).price, buyAmount, restAmount);
-        cartList.add(c);
+    public void addOnCartList(int id, String pname, int price, int buyQuantity, int restQuantity) {
+        int commonidExist = 0;
+        int oldBuyQuan = 0;
+        int oldResQuan = 0;
+        for (Cart c : cartList)
+            if (id == c.id) {
+                commonidExist = 1;
+                break;
+            }
         try {
-            pstmt = conn.prepareStatement("insert into cart values(?, ?, ?, ?)");
-            pstmt.setString(1, c.pname);
-            pstmt.setInt(2, c.price);
-            pstmt.setInt(3, buyAmount);
-            pstmt.setInt(4, restAmount);
-            
-            pstmt.executeUpdate();
+            if (commonidExist == 1) {
+                pstmt = conn.prepareStatement("select buyQuantity, restQuantity from cart where id = ?");
+                pstmt.setInt(1, id);
+                
+                pstmt.executeQuery();
+                
+                while (rs.next()) {
+                    oldBuyQuan = rs.getInt(1);
+                    oldResQuan = rs.getInt(2);
+                }
+                
+                pstmt = conn.prepareStatement("insert into cart(buyQuantity, restQuantity) values (?, ?)");
+                pstmt.setInt(1, oldBuyQuan + buyQuantity);
+                pstmt.setInt(2, oldResQuan - buyQuantity);
+            } else {
+                Cart c = new Cart(id, pname, price, buyQuantity, restQuantity);
+                cartList.add(c);
+                pstmt = conn.prepareStatement("insert into cart values(?, ?, ?, ?, ?)");
+                pstmt.setInt(1, c.id);
+                pstmt.setString(2, c.pname);
+                pstmt.setInt(3, c.price);
+                pstmt.setInt(4, c.buyQuantity);
+                pstmt.setInt(5, c.restQuantity);
+                
+                pstmt.executeUpdate();
+            }
         } catch (SQLException e) {
             System.out.println("장바구니에 항목 추가 실패(Fail to add the product selected) - " + e.getMessage());
         }
@@ -114,10 +144,12 @@ public class Mode {
             int i = 0;
             int sum = 0;
             while (rs.next()) {
-                int price = rs.getInt(2);
-                int buyAmount = rs.getInt(3);
-                System.out.printf("[ %-3d ] %-12s (가격: %-6d / 구매량: %-4d)\n", ++i, rs.getString(1), price, buyAmount);
-                sum += price * buyAmount;
+                String pname = rs.getString(2);
+                int price = rs.getInt(3);
+                int buyQuantity = rs.getInt(4);
+                int entirePrice = price * buyQuantity;
+                System.out.printf("[ %-3d ] %-12s (%-6d원 X %-4d개 = %-6d원)\n", ++i, pname, price, buyQuantity, entirePrice);
+                sum += entirePrice;
             }
             System.out.println("합계: " + sum);
             do {
@@ -154,8 +186,22 @@ public class Mode {
                 break;
             }
              else
-                 System.out.println("[1], [2], [3] 중에서 다시 입력해주세요.");
+                 System.out.println("[1], [2], [3], [4] 중에서 다시 입력해주세요.");
         } while (true);
+    }
+    
+    public void updateQuantity() {
+        try {
+            for (Cart c : cartList) {
+                pstmt = conn.prepareStatement("update productList set quantity = ? where id = ?");
+                pstmt.setInt(1, c.restQuantity);
+                pstmt.setInt(2, c.id);
+                
+                pstmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            System.out.println("상품 수량 업데이트 실패(Fail to update productList) - " + e.getMessage());
+        }
     }
     
     public void resetCart() {
@@ -165,20 +211,6 @@ public class Mode {
             pstmt.executeUpdate();
         } catch (SQLException e) {
             System.out.println("장바구니 초기화 실패(Fail to reset cart) - " + e.getMessage());
-        }
-    }
-    
-    public void updateQuantity() {
-        try {
-            for (Cart c : cartList) {
-                pstmt = conn.prepareStatement("update productList set quantity = ? where pname = '?'");
-                pstmt.setInt(1, c.restAmount);
-                pstmt.setString(2, c.pname);
-                
-                pstmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            System.out.println("상품 수량 업데이트 실패(Fail to update productList) - " + e.getMessage());
         }
     }
 }

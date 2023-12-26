@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Kiosk_SoonjaIndustry:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Kiosk_SoonjaIndustry_jar</output-path>
+    <root id="archive" name="Kiosk_SoonjaIndustry.jar">
+      <element id="module-output" name="Kiosk_SoonjaIndustry" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../../Program Files/MySQL/mysql-connector-j-8.0.33/mysql-connector-j-8.0.33.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

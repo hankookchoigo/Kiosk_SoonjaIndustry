@@ -27,7 +27,7 @@ public class UserMode extends Mode {
             
             if (sel.equals("c"))
                 printCart();
-            else if (sel.equals("관리자_종료"))
+            else if (sel.equals("endWithForce"))
                 break;
             else {
                 int bIdx = Integer.parseInt(sel) - 1;   // 구매 상품의 인덱스
@@ -39,14 +39,14 @@ public class UserMode extends Mode {
                 else {
                     System.out.print("구매할 상품 개수 입력(남은 수량: " + thisQuantity + " 개): ");
                     int buyQuantity = stdIn.nextInt();  // 구매자가 원하는 수량
-                    int lackQuantity = buyQuantity - thisQuantity;    // 구매 시 남는 상품 수량
+                    int remains = thisQuantity - buyQuantity;    // 구매 시 남는 상품 수량
                     
-                    if (lackQuantity > 0) {
-                        System.out.println("해당 상품의 수량이 " + lackQuantity + "개 부족합니다. 수량을 줄이거나 다른 상품을 선택해주세요.");
+                    if (remains < 0) {
+                        System.out.println("해당 상품의 수량이 " + -remains + "개 부족합니다. 수량을 줄이거나 다른 상품을 선택해주세요.");
                     }
                     else {
-                        addOnCartList(bIdx, buyQuantity, -lackQuantity);
-                        System.out.printf("[ %-3d ] %-12s (가격: %-6d / 구매량: %-4d) 상품이 장바구니에 담겼습니다.\n", bIdx + 1, buyPro.pname, buyPro.price, buyQuantity);
+                        addOnCartList(buyPro.id, buyPro.pname, buyPro.price, buyQuantity, remains);
+                        System.out.printf("[ %-3d ] %-12s (%-6d원 X %-4d = %-6d원) 상품이 장바구니에 담겼습니다.\n", bIdx + 1, buyPro.pname, buyPro.price, buyQuantity, buyPro.price * buyQuantity);
                     }
                 }
             }
